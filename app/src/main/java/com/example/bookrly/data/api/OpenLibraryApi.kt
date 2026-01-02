@@ -1,0 +1,15 @@
+package com.example.bookrly.data.api
+
+import com.example.bookrly.data.model.SubjectResponse
+import com.example.bookrly.data.model.WorkDetailDto
+import retrofit2.http.GET
+import retrofit2.http.Path
+import retrofit2.http.Query
+
+interface OpenLibraryApi {
+    @GET("subjects/fiction.json")
+    suspend fun getFictionBooks(@Query("limit") limit: Int = 20): SubjectResponse
+
+    @GET("{workPath}.json")
+    suspend fun getBookDetails(@Path("workPath", encoded = true) workPath: String): WorkDetailDto
+}
