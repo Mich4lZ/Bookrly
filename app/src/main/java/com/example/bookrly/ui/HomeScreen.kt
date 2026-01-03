@@ -16,13 +16,17 @@ import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
 import coil.request.ImageRequest
 import com.example.bookrly.data.model.Book
+import androidx.compose.material.icons.filled.DarkMode
+import androidx.compose.material.icons.filled.LightMode
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HomeScreen(
     viewModel: BookViewModel,
     onBookClick: (Book) -> Unit,
-    onFavoritesClick: () -> Unit
+    onFavoritesClick: () -> Unit,
+    onThemeToggle: () -> Unit,
+    isDarkTheme: Boolean
 ) {
     val uiState by viewModel.uiState.collectAsState()
 
@@ -31,6 +35,12 @@ fun HomeScreen(
             CenterAlignedTopAppBar(
                 title = { Text("Bookrly") },
                 actions = {
+                    IconButton(onClick = onThemeToggle) {
+                        Icon(
+                            imageVector = if (isDarkTheme) Icons.Default.LightMode else Icons.Default.DarkMode,
+                            contentDescription = "Toggle Theme"
+                        )
+                    }
                     IconButton(onClick = onFavoritesClick) {
                         Icon(Icons.Default.Favorite, contentDescription = "Favorites")
                     }

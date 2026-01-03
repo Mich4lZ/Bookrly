@@ -14,21 +14,32 @@ import com.example.bookrly.ui.BookViewModel
 import com.example.bookrly.ui.FavoritesScreen
 import com.example.bookrly.ui.HomeScreen
 import com.example.bookrly.ui.theme.BookrlyTheme
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         setContent {
-            BookrlyTheme {
-                BookrlyApp()
+            var isDarkTheme by remember { mutableStateOf(false) }
+            BookrlyTheme(darkTheme = isDarkTheme) {
+                BookrlyApp(
+                    isDarkTheme = isDarkTheme,
+                    onThemeToggle = { isDarkTheme = !isDarkTheme }
+                )
             }
         }
     }
 }
 
 @Composable
-fun BookrlyApp() {
+fun BookrlyApp(
+    isDarkTheme: Boolean,
+    onThemeToggle: () -> Unit
+) {
     val navController = rememberNavController()
     val viewModel: BookViewModel = viewModel(factory = BookViewModel.Factory)
 
@@ -42,7 +53,9 @@ fun BookrlyApp() {
                 },
                 onFavoritesClick = {
                     navController.navigate("favorites")
-                }
+                },
+                isDarkTheme = isDarkTheme,
+                onThemeToggle = onThemeToggle
             )
         }
         composable("detail") {
