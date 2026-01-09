@@ -19,7 +19,9 @@ import kotlinx.coroutines.launch
 data class BookUiState(
     val books: List<Book> = emptyList(),
     val isLoading: Boolean = false,
-    val error: String? = null
+    val isPaginationLoading: Boolean = false,
+    val error: String? = null,
+    val endReached: Boolean = false
 )
 
 class BookViewModel(private val repository: BookRepository) : ViewModel() {
@@ -36,18 +38,53 @@ class BookViewModel(private val repository: BookRepository) : ViewModel() {
     private val _isLoadingDetails = MutableStateFlow(false)
     val isLoadingDetails: StateFlow<Boolean> = _isLoadingDetails.asStateFlow()
 
+    private var currentOffset = 0
+    private val pageSize = 20
+
     init {
         loadBooks()
     }
 
     fun loadBooks() {
+        if (_uiState.value.isLoading) return
+        
         viewModelScope.launch {
-            _uiState.update { it.copy(isLoading = true, error = null) }
-            repository.getFictionBooks().collect { result ->
+            _uiState.update { it.copy(isLoading = true, error = null, books = emptyList(), endReached = false) }
+            currentOffset = 0
+            repository.getFictionBooks(limit = pageSize, offset = currentOffset).collect { result ->
                 result.onSuccess { books ->
-                    _uiState.update { it.copy(books = books, isLoading = false) }
+                    currentOffset += books.size
+                    _uiState.update { it.copy(
+                        books = books, 
+                        isLoading = false,
+                        endReached = books.size < pageSize
+                    ) }
                 }.onFailure { error ->
                     _uiState.update { it.copy(error = error.message, isLoading = false) }
+                }
+            }
+        }
+    }
+
+    fun loadNextPage() {
+        if (_uiState.value.isPaginationLoading || _uiState.value.endReached || _uiState.value.isLoading) return
+
+        viewModelScope.launch {
+            _uiState.update { it.copy(isPaginationLoading = true) }
+            repository.getFictionBooks(limit = pageSize, offset = currentOffset).collect { result ->
+                result.onSuccess { newBooks ->
+                    if (newBooks.isEmpty()) {
+                        _uiState.update { it.copy(isPaginationLoading = false, endReached = true) }
+                    } else {
+                        currentOffset += newBooks.size
+                        _uiState.update { it.copy(
+                            books = it.books + newBooks,
+                            isPaginationLoading = false,
+                            endReached = newBooks.size < pageSize
+                        ) }
+                    }
+                }.onFailure { error ->
+                    _uiState.update { it.copy(isPaginationLoading = false, error = "Failed to load more books") }
                 }
             }
         }

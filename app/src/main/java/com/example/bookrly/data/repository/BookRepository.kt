@@ -11,15 +11,15 @@ class BookRepository(
     private val api: OpenLibraryApi,
     private val favoritesManager: FavoritesManager
 ) {
-    fun getFictionBooks(): Flow<Result<List<Book>>> = flow {
+    fun getFictionBooks(limit: Int = 20, offset: Int = 0): Flow<Result<List<Book>>> = flow {
         try {
-            val response = api.getFictionBooks()
+            val response = api.getFictionBooks(limit = limit, offset = offset)
             val books = response.works.map { work ->
                 Book(
                     id = work.key,
                     title = work.title,
                     author = work.authors?.firstOrNull()?.name ?: "Unknown Author",
-                    coverUrl = work.coverId?.let { "https://covers.openlibrary.org/b/id/$it-M.jpg" }
+                    coverUrl = work.coverId?.let { "https://covers.openlibrary.org/b/id/$it-S.jpg" }
                 )
             }
             emit(Result.success(books))
@@ -29,8 +29,6 @@ class BookRepository(
     }
 
     suspend fun getBookDetails(book: Book): Book {
-        val largeCoverUrl = book.coverUrl?.replace("-M.jpg", "-L.jpg")
-        
         return try {
             val path = if (book.id.startsWith("/")) book.id.substring(1) else book.id
             Log.d("BookRepository", "Fetching details for: $path")
@@ -41,12 +39,11 @@ class BookRepository(
             book.copy(
                 description = details.description,
                 publishYear = details.firstPublishDate,
-                pages = details.numberOfPages,
-                coverUrl = largeCoverUrl
+                pages = details.numberOfPages
             )
         } catch (e: Exception) {
             e.printStackTrace()
-            book.copy(coverUrl = largeCoverUrl)
+            book
         }
     }
     
@@ -56,7 +53,7 @@ class BookRepository(
             val details = api.getBookDetails(path)
             
             val coverId = details.covers?.firstOrNull()
-            val coverUrl = coverId?.let { "https://covers.openlibrary.org/b/id/$it-M.jpg" }
+            val coverUrl = coverId?.let { "https://covers.openlibrary.org/b/id/$it-S.jpg" }
 
             val book = Book(
                 id = id,
