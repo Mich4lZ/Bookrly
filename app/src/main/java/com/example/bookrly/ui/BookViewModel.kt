@@ -8,8 +8,10 @@ import androidx.lifecycle.viewmodel.viewModelFactory
 import com.example.bookrly.App
 import com.example.bookrly.data.model.Book
 import com.example.bookrly.data.repository.BookRepository
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -21,7 +23,8 @@ data class BookUiState(
     val isLoading: Boolean = false,
     val isPaginationLoading: Boolean = false,
     val error: String? = null,
-    val endReached: Boolean = false
+    val endReached: Boolean = false,
+    val searchQuery: String = ""
 )
 
 class BookViewModel(private val repository: BookRepository) : ViewModel() {
@@ -40,9 +43,19 @@ class BookViewModel(private val repository: BookRepository) : ViewModel() {
 
     private var currentOffset = 0
     private val pageSize = 20
+    private var searchJob: Job? = null
 
     init {
         loadBooks()
+    }
+
+    fun onSearchQueryChange(query: String) {
+        _uiState.update { it.copy(searchQuery = query) }
+        searchJob?.cancel()
+        searchJob = viewModelScope.launch {
+            delay(500) // Debounce
+            loadBooks()
+        }
     }
 
     fun loadBooks() {
@@ -51,7 +64,15 @@ class BookViewModel(private val repository: BookRepository) : ViewModel() {
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true, error = null, books = emptyList(), endReached = false) }
             currentOffset = 0
-            repository.getFictionBooks(limit = pageSize, offset = currentOffset).collect { result ->
+            val query = _uiState.value.searchQuery
+            
+            val flow = if (query.isEmpty()) {
+                repository.getFictionBooks(limit = pageSize, offset = currentOffset)
+            } else {
+                repository.searchBooks(query = query, limit = pageSize, offset = currentOffset)
+            }
+
+            flow.collect { result ->
                 result.onSuccess { books ->
                     currentOffset += books.size
                     _uiState.update { it.copy(
@@ -71,7 +92,15 @@ class BookViewModel(private val repository: BookRepository) : ViewModel() {
 
         viewModelScope.launch {
             _uiState.update { it.copy(isPaginationLoading = true) }
-            repository.getFictionBooks(limit = pageSize, offset = currentOffset).collect { result ->
+            val query = _uiState.value.searchQuery
+            
+            val flow = if (query.isEmpty()) {
+                repository.getFictionBooks(limit = pageSize, offset = currentOffset)
+            } else {
+                repository.searchBooks(query = query, limit = pageSize, offset = currentOffset)
+            }
+
+            flow.collect { result ->
                 result.onSuccess { newBooks ->
                     if (newBooks.isEmpty()) {
                         _uiState.update { it.copy(isPaginationLoading = false, endReached = true) }

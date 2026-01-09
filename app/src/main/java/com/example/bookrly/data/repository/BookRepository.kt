@@ -19,7 +19,24 @@ class BookRepository(
                     id = work.key,
                     title = work.title,
                     author = work.authors?.firstOrNull()?.name ?: "Unknown Author",
-                    coverUrl = work.coverId?.let { "https://covers.openlibrary.org/b/id/$it-S.jpg" }
+                    coverUrl = work.coverId?.let { "https://covers.openlibrary.org/b/id/$it-M.jpg" }
+                )
+            }
+            emit(Result.success(books))
+        } catch (e: Exception) {
+            emit(Result.failure(e))
+        }
+    }
+
+    fun searchBooks(query: String, limit: Int = 20, offset: Int = 0): Flow<Result<List<Book>>> = flow {
+        try {
+            val response = api.searchBooks(query = query, limit = limit, offset = offset)
+            val books = response.docs.map { doc ->
+                Book(
+                    id = doc.key,
+                    title = doc.title,
+                    author = doc.authorNames?.firstOrNull() ?: "Unknown Author",
+                    coverUrl = doc.coverId?.let { "https://covers.openlibrary.org/b/id/$it-M.jpg" }
                 )
             }
             emit(Result.success(books))
@@ -53,7 +70,7 @@ class BookRepository(
             val details = api.getBookDetails(path)
             
             val coverId = details.covers?.firstOrNull()
-            val coverUrl = coverId?.let { "https://covers.openlibrary.org/b/id/$it-S.jpg" }
+            val coverUrl = coverId?.let { "https://covers.openlibrary.org/b/id/$it-M.jpg" }
 
             val book = Book(
                 id = id,

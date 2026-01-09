@@ -11,11 +11,22 @@ data class SubjectResponse(
     @SerializedName("works") val works: List<WorkDto>
 )
 
+data class SearchResponse(
+    @SerializedName("docs") val docs: List<SearchDocDto>
+)
+
 data class WorkDto(
     @SerializedName("key") val key: String,
     @SerializedName("title") val title: String,
     @SerializedName("cover_id") val coverId: Long?,
     @SerializedName("authors") val authors: List<AuthorDto>?
+)
+
+data class SearchDocDto(
+    @SerializedName("key") val key: String,
+    @SerializedName("title") val title: String,
+    @SerializedName("cover_i") val coverId: Long?,
+    @SerializedName("author_name") val authorNames: List<String>?
 )
 
 data class AuthorDto(

@@ -19,6 +19,8 @@ import coil.request.ImageRequest
 import com.example.bookrly.data.model.Book
 import androidx.compose.material.icons.filled.DarkMode
 import androidx.compose.material.icons.filled.LightMode
+import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.filled.Clear
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -49,20 +51,40 @@ fun HomeScreen(
 
     Scaffold(
         topBar = {
-            CenterAlignedTopAppBar(
-                title = { Text("Bookrly") },
-                actions = {
-                    IconButton(onClick = onThemeToggle) {
-                        Icon(
-                            imageVector = if (isDarkTheme) Icons.Default.LightMode else Icons.Default.DarkMode,
-                            contentDescription = "Toggle Theme"
-                        )
+            Column {
+                CenterAlignedTopAppBar(
+                    title = { Text("Bookrly") },
+                    actions = {
+                        IconButton(onClick = onThemeToggle) {
+                            Icon(
+                                imageVector = if (isDarkTheme) Icons.Default.LightMode else Icons.Default.DarkMode,
+                                contentDescription = "Toggle Theme"
+                            )
+                        }
+                        IconButton(onClick = onFavoritesClick) {
+                            Icon(Icons.Default.Favorite, contentDescription = "Favorites")
+                        }
                     }
-                    IconButton(onClick = onFavoritesClick) {
-                        Icon(Icons.Default.Favorite, contentDescription = "Favorites")
-                    }
-                }
-            )
+                )
+                OutlinedTextField(
+                    value = uiState.searchQuery,
+                    onValueChange = { viewModel.onSearchQueryChange(it) },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp, vertical = 8.dp),
+                    placeholder = { Text("Search books...") },
+                    leadingIcon = { Icon(Icons.Default.Search, contentDescription = null) },
+                    trailingIcon = {
+                        if (uiState.searchQuery.isNotEmpty()) {
+                            IconButton(onClick = { viewModel.onSearchQueryChange("") }) {
+                                Icon(Icons.Default.Clear, contentDescription = "Clear search")
+                            }
+                        }
+                    },
+                    singleLine = true,
+                    shape = MaterialTheme.shapes.medium
+                )
+            }
         }
     ) { innerPadding ->
         Box(modifier = Modifier.padding(innerPadding).fillMaxSize()) {
@@ -79,6 +101,12 @@ fun HomeScreen(
                         Text("Retry")
                     }
                 }
+            } else if (uiState.books.isEmpty() && !uiState.isLoading) {
+                Text(
+                    text = "No books found",
+                    modifier = Modifier.align(Alignment.Center),
+                    style = MaterialTheme.typography.bodyLarge
+                )
             } else {
                 LazyColumn(state = listState) {
                     items(uiState.books) { book ->
